@@ -5,6 +5,7 @@ import (
     "log"
     "net/http"
 	"os"
+	"io"
 )
 
 func helloHandler(w http.ResponseWriter, r *http.Request) {
@@ -43,19 +44,58 @@ func fileAppendHandler(w http.ResponseWriter, r *http.Request){
 
 }
 
+func getLastLineWithSeek(filepath string) string {
+    fileHandle, err := os.Open(filepath)
+
+    if err != nil {
+        panic("Cannot open file")
+        os.Exit(1)
+    }
+    defer fileHandle.Close()
+
+    line := ""
+    var cursor int64 = 0
+    stat, _ := fileHandle.Stat()
+    filesize := stat.Size()
+    for { 
+        cursor -= 1
+        fileHandle.Seek(cursor, io.SeekEnd)
+
+        char := make([]byte, 1)
+        fileHandle.Read(char)
+
+        if cursor != -1 && (char[0] == 10 || char[0] == 13) { // stop if we find a line
+            break
+        }
+
+        line = fmt.Sprintf("%s%s", string(char), line) // there is more efficient way
+
+        if cursor == -filesize { // stop if we are at the begining
+            break
+        }
+    }
+
+    return line
+}
+
 func fileReadHandler(w http.ResponseWriter, r *http.Request){
 	if r.URL.Path !="/fileRead"{
 		http.Error(w, "404 nope", http.StatusNotFound)
 		return
 	}
 
- 	data, err := os.ReadFile("access.log")
-	if err != nil {
-		log.Fatal(err)
-	}
-	os.Stdout.Write(data)
+ 	// data, err := os.ReadFile("access.log")
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// os.Stdout.Write(data)
 
-    fmt.Fprintf(w, string(data))
+    // fmt.Fprintf(w, string(data))
+
+    fmt.Fprintf(w, string(getLastLineWithSeek("access.log")))
+    fmt.Fprintf(w, "Done!")
+    fmt.Fprintf(w, "Done!")
+
 
 }
 

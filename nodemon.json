@@ -2,7 +2,7 @@
     "watch": [
         "*"
     ],
-    "ext": "go graphql",
+    "ext": "go",
     "ignore": [
         "*gen*.go"
     ],
