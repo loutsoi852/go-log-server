@@ -7,7 +7,7 @@
 
 <script>
 
-
+    var interval = 0
     async function post() {
         try {
             await fetch('http://localhost:8080/send', {
@@ -21,6 +21,14 @@
         } catch (e) {
             console.log('post failed')
         }
+    }
+
+    function postMulti() {
+        interval = setInterval(() => post(), 100)
+    }
+
+    function stopMulti() {
+        clearInterval(interval)
     }
 
     async function read() {
@@ -52,6 +60,8 @@
         <br />
         <button onClick="post()">POST</button>
         <button onClick="read()">READ</button>
+        <button onClick="postMulti()">POST Multi</button>
+        <button onClick="stopMulti()">Stop Multi</button>
     </div>
 </body>
 

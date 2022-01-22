@@ -9,11 +9,13 @@ import (
 	"os"
 	"github.com/gorilla/mux"
 	"strings"
+	"time"
+	"strconv"
 )
 
 var logFileA string = "logA.log"
 var logFileB string = "logB.log"
-var fileSizeLimit int64 = 100
+var fileSizeLimit int64 = 1000
 
 func main() {
 	r := mux.NewRouter()
@@ -42,55 +44,42 @@ func getFileDetails(file string)(m int64, s int64, f *os.File){
             log.Fatal(err)
         }
 		stat, _ := f.Stat()
-        modTime := stat.ModTime().Unix()
+        modTime := stat.ModTime().UnixNano()
 		size := stat.Size()
 		//fmt.Printf("Type: %T \n", f)
-
 		return modTime, size, f
 }
 
 func getTruncFile(file string) (f *os.File){
-	f, err := os.OpenFile(file, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0755)
+	f, err := os.OpenFile(file, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
 		log.Fatal(err)
 	}
+	//fmt.Printf("TRUNC Type: %T Value: %v\n", f, f.Name())
+
 	return f
 }
 
 func closeFile(f *os.File){
-	fmt.Printf("Closing: %v\n",  f.Name())
+	//fmt.Printf("Closing: %v\n",  f.Name())
 	if err := f.Close(); err != nil {
 		log.Fatal(err)
 	}
 }
 func getLatestFile(truncIt bool)(f *os.File){
-
 	//get latest ModTime.unix file
 	//is file size less than X
 		//yes return file
-	
 	//no then truncate the other file and return it sd
-
 
 	modTimeA, sizeA, fA := getFileDetails(logFileA)
 	modTimeB, sizeB, fB := getFileDetails(logFileB)
-	// fmt.Printf("Type: %T Value: %v\n", modTimeA, modTimeA)
-	// fmt.Printf("Type: %T Value: %v\n", sizeA, sizeA)
-	// fmt.Printf("Type: %T Value: %v\n", fA, fA.Name())
-	// fmt.Printf("Type: %T Value: %v\n", fB, fB.Name())
-
-	// fmt.Println(modTimeA)
-	// fmt.Println(modTimeB)
-	// fmt.Println("sizeA",sizeA)
-	// fmt.Println("sizeB", sizeB)
 
 	if(modTimeA >= modTimeB){
 		if(truncIt && sizeA > fileSizeLimit){
 			closeFile(fA)
 			closeFile(fB)
-			truncF := getTruncFile(logFileB)
-			fmt.Printf("TRUNC Type: %T Value: %v\n", truncF, truncF.Name())
-			return truncF
+			return getTruncFile(logFileB)
 		}
 		closeFile(fB)
 		return fA
@@ -98,15 +87,11 @@ func getLatestFile(truncIt bool)(f *os.File){
 		if(truncIt && sizeB > fileSizeLimit){
 			closeFile(fB)
 			closeFile(fA)
-			truncF := getTruncFile(logFileA)
-			fmt.Printf("TRUNC Type: %T Value: %v\n", truncF, truncF.Name())
-			return truncF
+			return getTruncFile(logFileA)
 		}
 		closeFile(fA)
 		return fB
 	}
-
-
 
 }
 
@@ -144,7 +129,11 @@ func fileAppendHandler(w http.ResponseWriter, r *http.Request) {
 
 
 	fp := getLatestFile(true)
-	fmt.Printf("FP Type: %T Value: %v\n", fp, fp.Name())
+	now := time.Now().UTC().UnixNano()
+
+	if _, err := fp.WriteString(strconv.FormatInt(now, 10)+": "); err != nil {
+		log.Fatal(err)
+	}
 	if _, err := fp.Write([]byte(*t.Log)); err != nil {
 		log.Fatal(err)
 	}
@@ -157,58 +146,6 @@ func fileAppendHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	fmt.Fprintf(w, "Success")
 
-	return
-
-
-	// // If the file doesn't exist, create it, or append to the file
-	// f, err := os.OpenFile(logFileA, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	// //f, err := os.OpenFile(logFileA, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0755)
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-	// // if _, err := f.Write([]byte("appended some data\n")); err != nil {
-	// // 	log.Fatal(err)
-	// // }
-	// if _, err := f.Write([]byte(*t.Log)); err != nil {
-	// 	log.Fatal(err)
-	// }
-	// if _, err := f.Write([]byte("\n")); err != nil {
-	// 	log.Fatal(err)
-	// }
-
-	// stat, _ := f.Stat()
-	// filesize := stat.Size()
-
-	// if err := f.Close(); err != nil {
-	// 	log.Fatal(err)
-	// }
-
-	// //do something when log file size is too big
-	// if filesize > 1000 {
-	// 	e := os.Rename(logFileA, logFileB)
-	// 	if e != nil {
-	// 		log.Fatal(e)
-	// 	}
-
-	// 	newF, err := os.OpenFile(logFileA, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	// 	if err != nil {
-	// 		log.Fatal(err)
-	// 	}
-
-	// 	if err := newF.Close(); err != nil {
-	// 		log.Fatal(err)
-	// 	}
-
-	// }
-
-	// w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	// w.Header().Set("Access-Control-Allow-Origin", "*")
-
-	// // got the input we expected: no more, no less
-	// fmt.Println(*t.Log)
-	// fmt.Println(filesize)
-
-	// fmt.Fprintf(w, "Success")
 }
 
 
@@ -297,9 +234,6 @@ func fetchLines(lineLimit int) string {
 		return s
 
 	}
-
-
-
 
 }
 
