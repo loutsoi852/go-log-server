@@ -30,7 +30,7 @@ func main() {
 	})
 
 	fmt.Printf("Starting server at port 7777\n")
-	if err := http.ListenAndServe("127.0.0.1:7777", nil); err != nil {
+	if err := http.ListenAndServe("0.0.0.0:7777", nil); err != nil {
 		log.Fatal(err)
 	}
 }

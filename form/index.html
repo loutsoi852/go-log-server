@@ -10,7 +10,7 @@
     var interval = 0
     async function post() {
         try {
-            await fetch('http://localhost:8080/send', {
+            await fetch('http://' + window.location.hostname + ':7777/send', {
                 method: 'POST', // *GET, POST, PUT, DELETE, etc.
                 headers: {},
                 body: JSON.stringify({
@@ -33,7 +33,7 @@
 
     async function read() {
         try {
-            const req = await fetch('http://localhost:8080/read/6', {
+            const req = await fetch('http://' + window.location.hostname + ':7777/read/6', {
                 method: 'GET', // *GET, POST, PUT, DELETE, etc.
                 headers: {},
             })
