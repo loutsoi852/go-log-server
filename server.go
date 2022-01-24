@@ -128,10 +128,13 @@ func fileAppendHandler(w http.ResponseWriter, r *http.Request) {
 	fp := getLatestFile(true)
 	now := time.Now().UTC().UnixNano()
 
-	if _, err := fp.WriteString(strconv.FormatInt(now, 10) + ": "); err != nil {
+	if _, err := fp.WriteString("{\"time\":" + strconv.FormatInt(now, 10) + ", \"log\":\""); err != nil {
 		log.Fatal(err)
 	}
 	if _, err := fp.Write([]byte(*t.Log)); err != nil {
+		log.Fatal(err)
+	}
+	if _, err := fp.WriteString("\"}"); err != nil {
 		log.Fatal(err)
 	}
 	if _, err := fp.Write([]byte("\n")); err != nil {
