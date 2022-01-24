@@ -16,7 +16,7 @@ import (
 
 const logFileA string = "logA.log"
 const logFileB string = "logB.log"
-const fileSizeLimit int64 = 1000000
+const fileSizeLimit int64 = 300000
 
 func main() {
 	r := mux.NewRouter()
