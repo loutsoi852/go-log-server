@@ -18,6 +18,11 @@ const logFileA string = "logA.log"
 const logFileB string = "logB.log"
 const fileSizeLimit int64 = 300000
 
+type Log struct {
+	Time string `json:"time"`
+	Log  string `json:"log"`
+}
+
 func main() {
 	r := mux.NewRouter()
 
@@ -128,15 +133,17 @@ func fileAppendHandler(w http.ResponseWriter, r *http.Request) {
 	fp := getLatestFile(true)
 	now := time.Now().UTC().UnixNano()
 
-	if _, err := fp.WriteString("{\"time\":" + strconv.FormatInt(now, 10) + ", \"log\":\""); err != nil {
+	data := Log{
+		Time: strconv.FormatInt(now, 10),
+		Log:  *t.Log,
+	}
+
+	file, _ := json.Marshal(data)
+
+	if _, err := fp.Write(file); err != nil {
 		log.Fatal(err)
 	}
-	if _, err := fp.Write([]byte(*t.Log)); err != nil {
-		log.Fatal(err)
-	}
-	if _, err := fp.WriteString("\"}"); err != nil {
-		log.Fatal(err)
-	}
+
 	if _, err := fp.Write([]byte("\n")); err != nil {
 		log.Fatal(err)
 	}
