@@ -29,8 +29,8 @@ func main() {
 		http.ServeFile(w, r, "./form/index.html")
 	})
 
-	fmt.Printf("Starting server at port 8080\n")
-	if err := http.ListenAndServe("127.0.0.1:8080", nil); err != nil {
+	fmt.Printf("Starting server at port 7777\n")
+	if err := http.ListenAndServe("127.0.0.1:7777", nil); err != nil {
 		log.Fatal(err)
 	}
 }
