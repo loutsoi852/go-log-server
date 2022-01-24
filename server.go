@@ -248,6 +248,9 @@ func fileReadHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		fmt.Printf("Error: %s", err.Error())
 	}
+
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	fmt.Fprintf(w, "{\"data\":"+string(j)+"}")
 	////fmt.Println("-------------end---------------")
 }
