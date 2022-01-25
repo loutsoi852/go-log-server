@@ -24,7 +24,8 @@
     }
 
     function postMulti() {
-        interval = setInterval(() => post(), 1000)
+        clearInterval(interval)
+        interval = setInterval(() => post(), 500)
     }
 
     function stopMulti() {
@@ -50,14 +51,6 @@
 
 <body>
     <div>
-        <form method="POST" action="/send">
-            <label>Name</label><input name="name" type="text" value="" />
-            <label>Address</label><input name="address" type="text" value="" />
-            <input type="submit" value="submit" />
-        </form>
-        <br />
-        <br />
-        <br />
         <button onClick="post()">POST</button>
         <button onClick="read()">READ</button>
         <button onClick="postMulti()">POST Multi</button>

@@ -12,31 +12,91 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/gorilla/websocket"
 )
 
 const logFileA string = "logA.log"
 const logFileB string = "logB.log"
 const fileSizeLimit int64 = 300000
+const maxWSConnections = 10
+
+var upgrader = websocket.Upgrader{}
 
 type Log struct {
 	Time string `json:"time"`
 	Log  string `json:"log"`
 }
 
+type wsConn struct {
+	status bool
+	conn   websocket.Conn
+}
+
+var wsCons [10]wsConn
+
 func main() {
 	r := mux.NewRouter()
 
 	r.HandleFunc("/send", fileAppendHandler)
 	r.HandleFunc("/read/{lines}", fileReadHandler)
+	http.HandleFunc("/liveLogs", liveLogs)
 	http.Handle("/", r)
 
+	r.PathPrefix("/test").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "./form.html")
+	})
+
 	r.PathPrefix("/").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "./form/index.html")
+		http.ServeFile(w, r, "./wsClient.html")
 	})
 
 	fmt.Printf("Starting server at port 7777\n")
-	if err := http.ListenAndServe("0.0.0.0:7777", nil); err != nil {
+	//if err := http.ListenAndServe("0.0.0.0:7777", nil); err != nil {
+	if err := http.ListenAndServe("127.0.0.1:7777", nil); err != nil {
 		log.Fatal(err)
+	}
+}
+
+func closeConn(conn *websocket.Conn, index int) {
+	conn.Close()
+	wsCons[index].status = false
+}
+
+func liveLogs(w http.ResponseWriter, r *http.Request) {
+	// Upgrade upgrades the HTTP server connection to the WebSocket protocol.
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Print("upgrade failed: ", err)
+		return
+	}
+
+	//add the connection
+	var index int
+	for i, wsc := range wsCons {
+		if !wsc.status {
+			wsCons[i].status = true
+			wsCons[i].conn = *conn
+			index = i
+			break
+		}
+	}
+
+	defer closeConn(conn, index)
+
+	// Continuosly read and write message
+	for {
+		_, _, err := conn.ReadMessage()
+		if err != nil {
+			log.Println("WebSocket:", err)
+			break
+		}
+		// input := string(message)
+		// message = []byte(input)
+		// err = conn.WriteMessage(mt, message)
+		// if err != nil {
+		// 	log.Println("write failed:", err)
+		// 	break
+		// }
 	}
 }
 
@@ -148,6 +208,16 @@ func fileAppendHandler(w http.ResponseWriter, r *http.Request) {
 		log.Fatal(err)
 	}
 	closeFile(fp)
+
+	//loops through ws connections and send if connection live
+	for _, wsc := range wsCons {
+		if wsc.status {
+			err = wsc.conn.WriteMessage(1, file)
+			if err != nil {
+				log.Println("write failed:", err)
+			}
+		}
+	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
