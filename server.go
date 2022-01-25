@@ -64,6 +64,7 @@ func closeConn(conn *websocket.Conn, index int) {
 
 func liveLogs(w http.ResponseWriter, r *http.Request) {
 	// Upgrade upgrades the HTTP server connection to the WebSocket protocol.
+	upgrader.CheckOrigin = func(r *http.Request) bool { return true }
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Print("upgrade failed: ", err)
