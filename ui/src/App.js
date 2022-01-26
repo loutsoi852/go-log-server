@@ -2,11 +2,14 @@ import { useEffect } from 'react'
 import './App.css';
 
 function App() {
+  const ip = "10.0.1.197"
+  //const ip = window.location.hostname
 
   var interval = 0
+
   async function post() {
     try {
-      await fetch('http://' + window.location.hostname + ':7777/send', {
+      await fetch('http://' + ip + ':7777/send', {
         method: 'POST', // *GET, POST, PUT, DELETE, etc.
         headers: {},
         body: JSON.stringify({
@@ -30,7 +33,7 @@ function App() {
 
   async function read() {
     try {
-      const req = await fetch('http://' + window.location.hostname + ':7777/read/6', {
+      const req = await fetch('http://' + ip + ':7777/read/6', {
         method: 'GET', // *GET, POST, PUT, DELETE, etc.
         headers: {},
       })
@@ -41,14 +44,16 @@ function App() {
       console.log('read failed')
     }
   }
+  const socket = new WebSocket("ws://" + ip + ":7777/liveLogs");
 
-  console.log('ws connect')
-  const socket = new WebSocket("ws://localhost:7777/liveLogs");
+  socket.onopen = function () {
+    console.log('ws connected')
+  };
 
   socket.onmessage = function (e) {
-    console.log('ws msg')
-    console.log(e.data)
-  };
+    const json = JSON.parse(e.data)
+    console.log(json.time, JSON.parse(json.log))
+  }
 
 
   useEffect(() => {

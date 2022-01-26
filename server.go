@@ -51,7 +51,6 @@ func main() {
 	})
 
 	fmt.Printf("Starting server at port 7777\n")
-	//if err := http.ListenAndServe("0.0.0.0:7777", nil); err != nil {
 	if err := http.ListenAndServe("127.0.0.1:7777", nil); err != nil {
 		log.Fatal(err)
 	}
@@ -63,7 +62,6 @@ func closeConn(conn *websocket.Conn, index int) {
 }
 
 func liveLogs(w http.ResponseWriter, r *http.Request) {
-	// Upgrade upgrades the HTTP server connection to the WebSocket protocol.
 	upgrader.CheckOrigin = func(r *http.Request) bool { return true }
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -71,7 +69,6 @@ func liveLogs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//add the connection
 	var index int
 	for i, wsc := range wsCons {
 		if !wsc.status {
@@ -84,20 +81,12 @@ func liveLogs(w http.ResponseWriter, r *http.Request) {
 
 	defer closeConn(conn, index)
 
-	// Continuosly read and write message
 	for {
 		_, _, err := conn.ReadMessage()
 		if err != nil {
 			log.Println("WebSocket:", err)
 			break
 		}
-		// input := string(message)
-		// message = []byte(input)
-		// err = conn.WriteMessage(mt, message)
-		// if err != nil {
-		// 	log.Println("write failed:", err)
-		// 	break
-		// }
 	}
 }
 
@@ -110,7 +99,6 @@ func getFileDetails(file string) (m int64, s int64, f *os.File) {
 	stat, _ := f.Stat()
 	modTime := stat.ModTime().UnixNano()
 	size := stat.Size()
-	//fmt.Printf("Type: %T \n", f)
 	return modTime, size, f
 }
 
@@ -119,23 +107,16 @@ func getTruncFile(file string) (f *os.File) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	//fmt.Printf("TRUNC Type: %T Value: %v\n", f, f.Name())
 
 	return f
 }
 
 func closeFile(f *os.File) {
-	//fmt.Printf("Closing: %v\n",  f.Name())
 	if err := f.Close(); err != nil {
 		log.Fatal(err)
 	}
 }
 func getLatestFile(truncIt bool) (f *os.File) {
-	//get latest ModTime.unix file
-	//is file size less than X
-	//yes return file
-	//no then truncate the other file and return it sd
-
 	modTimeA, sizeA, fA := getFileDetails(logFileA)
 	modTimeB, sizeB, fB := getFileDetails(logFileB)
 
@@ -166,16 +147,14 @@ func fileAppendHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	d := json.NewDecoder(r.Body)
-	d.DisallowUnknownFields() // catch unwanted fields
+	d.DisallowUnknownFields()
 
-	// anonymous struct type: handy for one-time use
 	t := struct {
-		Log *string `json:"log"` // pointer so we can test for field absence
+		Log *string `json:"log"`
 	}{}
 
 	err := d.Decode(&t)
 	if err != nil {
-		// bad JSON or unrecognized json field
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -185,7 +164,6 @@ func fileAppendHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// optional extra check
 	if d.More() {
 		http.Error(w, "extraneous data after JSON object", http.StatusBadRequest)
 		return
@@ -210,7 +188,6 @@ func fileAppendHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	closeFile(fp)
 
-	//loops through ws connections and send if connection live
 	for _, wsc := range wsCons {
 		if wsc.status {
 			err = wsc.conn.WriteMessage(1, file)
@@ -227,13 +204,11 @@ func fileAppendHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func getLastLineWithSeek(filepath string, lineLimit int) (string, int) {
-	//fmt.Println("filepath", filepath)
 
 	fileHandle, err := os.Open(filepath)
 
 	if err != nil {
 		panic("Cannot open file")
-		os.Exit(1)
 	}
 	defer fileHandle.Close()
 
@@ -268,12 +243,6 @@ func getLastLineWithSeek(filepath string, lineLimit int) (string, int) {
 }
 
 func fetchLines(lineLimit int) string {
-	//get latest file
-	//fetch lines
-	//return if is enough lines
-	//else
-	//fetch more lines from other file
-
 	fp := getLatestFile(false)
 	var firstFile string
 	var secondFile string
@@ -286,31 +255,20 @@ func fetchLines(lineLimit int) string {
 	}
 	//closeFile(fp)
 
-	// fmt.Printf("Type: %T Value: %v\n", firstFile, firstFile)
-	// fmt.Println("fp.Name", fp.Name())
-
-	// fmt.Println("firstFile", firstFile)
-	// fmt.Println("secondFile", secondFile)
-
 	s, count := getLastLineWithSeek(firstFile, lineLimit)
-	// fmt.Println("count", count)
-	// fmt.Println("lineLimit", lineLimit)
 
 	var secondLineLimit int
 	if count < lineLimit {
 		secondLineLimit = lineLimit - count
-		// fmt.Println("secondLineLimit", secondLineLimit)
 		s2, _ := getLastLineWithSeek(secondFile, secondLineLimit)
 		return s2 + s
 	} else {
 		return s
 
 	}
-
 }
 
 func fileReadHandler(w http.ResponseWriter, r *http.Request) {
-	////fmt.Println("-------------start---------------")
 
 	vars := mux.Vars(r)
 	lines := vars["lines"]
@@ -320,11 +278,8 @@ func fileReadHandler(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 	s := fetchLines(lineLimit)
-
 	ss := strings.Split(s, "\n")
-	// //fmt.Println(ss)
 
-	////fmt.Println("s", s)
 	j, err := json.Marshal(ss)
 	if err != nil {
 		fmt.Printf("Error: %s", err.Error())
@@ -333,5 +288,4 @@ func fileReadHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	fmt.Fprintf(w, "{\"data\":"+string(j)+"}")
-	////fmt.Println("-------------end---------------")
 }
