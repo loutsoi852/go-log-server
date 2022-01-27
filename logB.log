@@ -11,3 +11,6 @@
 {"time":"1643099349077000300","log":"hello world Tue, 25 Jan 2022 08:29:09 GMT"}
 {"time":"1643099407833009900","log":"hello world Tue, 25 Jan 2022 08:30:07 GMT"}
 {"time":"1643099860490562400","log":"hello world Tue, 25 Jan 2022 08:37:40 GMT"}
+{"time":"1643255112103035800","log":"[\"hello log\"]"}
+{"time":"1643255187049865100","log":"[\"hello log\"]"}
+{"time":"1643255574283496300","log":"[\"hello log\"]"}

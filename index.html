@@ -1,0 +1,85 @@
+<html>
+
+<style>
+    html {
+        text-align: center;
+        font-size: 16px;
+    }
+
+    div {
+        padding: 1rem;
+    }
+
+    #input {
+        font-size: 16px;
+    }
+
+    p {
+        font-size: 16px;
+    }
+</style>
+<script>
+    const numLogsToRead = 10
+    const socket = new WebSocket("ws://" + window.location.hostname + ":7777/liveLogs");
+
+    socket.onopen = function () {
+        console.log('ws connected')
+    };
+
+    socket.onmessage = function (e) {
+        const json = JSON.parse(e.data)
+        console.log(json.time, JSON.parse(json.log))
+    }
+
+
+
+    async function post() {
+        try {
+            await fetch('http://' + window.location.hostname + ':7777/send', {
+                method: 'POST', // *GET, POST, PUT, DELETE, etc.
+                headers: {},
+                body: JSON.stringify({
+                    log: JSON.stringify(["hello log"])
+                })
+            })
+            console.log("post success")
+        } catch (e) {
+            console.log('post failed')
+        }
+    }
+
+
+    async function read() {
+        try {
+            const req = await fetch('http://' + window.location.hostname + ':7777/read/' + numLogsToRead, {
+                method: 'GET', // *GET, POST, PUT, DELETE, etc.
+                headers: {},
+            })
+            const res = await req.json()
+            console.log('res', res)
+            console.log("read success")
+        } catch (e) {
+            console.log('read failed')
+        }
+    }
+
+</script>
+
+
+<body>
+
+    <div style="text-align: center; font-size:30px">
+        Open console to see incoming live logs.
+    </div>
+
+    <div style="display:flex; justify-content:center">
+        <div style="border:1px solid #333; border-radius:10px; width:300px">
+            <h5>API TEST</h5>
+            <button onClick="post()">POST</button>
+            <button onClick="read()">READ</button>
+        </div>
+    </div>
+
+</body>
+
+</html>

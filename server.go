@@ -42,12 +42,8 @@ func main() {
 	http.HandleFunc("/liveLogs", liveLogs)
 	http.Handle("/", r)
 
-	r.PathPrefix("/test").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "./form.html")
-	})
-
 	r.PathPrefix("/").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "./wsClient.html")
+		http.ServeFile(w, r, "./index.html")
 	})
 
 	fmt.Printf("Starting server at port 7777\n")

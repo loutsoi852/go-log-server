@@ -9,7 +9,9 @@
 /coverage
 
 # production
-/build
+server
+logA.log
+logB.log
 
 # misc
 .DS_Store
@@ -27,3 +29,4 @@ hillary.yml
 debug.log
 build.zip
 access.log
+
