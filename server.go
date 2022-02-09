@@ -1,6 +1,7 @@
 package main
 
 import (
+	embed "embed"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -15,6 +16,9 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+//go:embed assets/*
+var assets embed.FS
+
 const logFileA string = "logA.log"
 const logFileB string = "logB.log"
 const fileSizeLimit int64 = 300000
@@ -24,7 +28,7 @@ var upgrader = websocket.Upgrader{}
 
 type Log struct {
 	Time string `json:"time"`
-	Log  string `json:"log"`
+	Data string `json:"data"`
 }
 
 type wsConn struct {
@@ -37,16 +41,28 @@ var wsCons [10]wsConn
 func main() {
 	r := mux.NewRouter()
 
+	assetsFS := http.FileServer(http.FS(assets))
+
+	http.Handle("/assets/", assetsFS)
 	r.HandleFunc("/send", fileAppendHandler)
 	r.HandleFunc("/read/{lines}", fileReadHandler)
 	http.HandleFunc("/liveLogs", liveLogs)
 	http.Handle("/", r)
+
+	r.PathPrefix("/build").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "./build/index.html")
+	})
+
+	r.PathPrefix("/test").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "./test.html")
+	})
 
 	r.PathPrefix("/").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "./index.html")
 	})
 
 	fmt.Printf("Starting server at port 7777\n")
+	// if err := http.ListenAndServe("0.0.0.0:7777", nil); err != nil {
 	if err := http.ListenAndServe("127.0.0.1:7777", nil); err != nil {
 		log.Fatal(err)
 	}
@@ -146,7 +162,7 @@ func fileAppendHandler(w http.ResponseWriter, r *http.Request) {
 	d.DisallowUnknownFields()
 
 	t := struct {
-		Log *string `json:"log"`
+		Data *string `json:"data"`
 	}{}
 
 	err := d.Decode(&t)
@@ -155,8 +171,8 @@ func fileAppendHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if t.Log == nil {
-		http.Error(w, "missing field 'log' from JSON object", http.StatusBadRequest)
+	if t.Data == nil {
+		http.Error(w, "missing field 'data' from JSON object", http.StatusBadRequest)
 		return
 	}
 
@@ -170,7 +186,7 @@ func fileAppendHandler(w http.ResponseWriter, r *http.Request) {
 
 	data := Log{
 		Time: strconv.FormatInt(now, 10),
-		Log:  *t.Log,
+		Data: *t.Data,
 	}
 
 	file, _ := json.Marshal(data)
@@ -186,7 +202,8 @@ func fileAppendHandler(w http.ResponseWriter, r *http.Request) {
 
 	for _, wsc := range wsCons {
 		if wsc.status {
-			err = wsc.conn.WriteMessage(1, file)
+			err = wsc.conn.WriteMessage(websocket.BinaryMessage, []byte(file))
+			// err = wsc.conn.WriteMessage(1, file)
 			if err != nil {
 				log.Println("write failed:", err)
 			}
