@@ -1,4 +1,6 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+logA.log
+logB.log
 
 # dependencies
 /node_modules
@@ -10,8 +12,6 @@
 
 # production
 server
-logA.log
-logB.log
 
 # misc
 .DS_Store

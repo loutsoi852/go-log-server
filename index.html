@@ -22,6 +22,10 @@
 <link href="/assets/style.css" rel="stylesheet" type="text/css" />
 <script type="text/javascript" src="/assets/jsonViewer.js"></script>
 <script>
+    // document.documentElement.style.setProperty('--logWindowWidth', "50%");
+    // document.documentElement.style.setProperty('--logWindowHeight', "50%");
+    // console.log(document.documentElement.style.getProperty('--logWindowWidth'))
+    // console.log(document.documentElement.style.getProperty('--logWindowHeight'))
 
     const numLogsToRead = 10
     const socket = new WebSocket("ws://" + window.location.hostname + ":7777/liveLogs");
@@ -47,6 +51,7 @@
         if (typeof JsonData.tag !== "undefined") {
             if (typeof getElByClass("tag:" + JsonData.tag) === 'undefined') {
                 container = createLogWindow(JsonData.tag)
+                setLogWindowWH()
             } else {
                 container = getElByClass("tag:" + JsonData.tag)
             }
@@ -60,13 +65,41 @@
             theme: 'dark',
             expand: true
         });
+        container.scrollTop = container.scrollHeight;
+
+
+    }
+
+    function setLogWindowWH() {
+        const maxCols = 4
+        const cols = document.getElementsByClassName('logWindow').length
+        if (cols <= maxCols) {
+            document.documentElement.style.setProperty('--logWindowWidth', (100 / cols) + "%");
+        } else {
+            document.documentElement.style.setProperty('--logWindowWidth', "25%");
+            const rows = Math.ceil(cols / maxCols)
+            document.documentElement.style.setProperty('--logWindowHeight', (100 / rows) + "%");
+        }
 
     }
 
     function getDateTime(nanotime) {
         var d = new Date(Math.round(nanotime / 1000000));
-        return d.getDate() + '/' + (d.getMonth()) + '/' + d.getFullYear() + " " + d.getHours() + ':' + d.getMinutes() + ':' + d.getSeconds() + ':' + d.getMilliseconds()
+        const counter = getCount(d.getHours() + '' + d.getMinutes())
+        return counter + "(" + d.getHours() + ':' + d.getMinutes() + ') ' + d.getSeconds() + ':' + d.getMilliseconds() + " | " + d.getDate() + '/' + (d.getMonth()) + '/' + d.getFullYear() + " | "
     };
+
+    let counter = {}
+
+    function getCount(time) {
+        if (Object.keys(counter).includes(time)) {
+            counter[time] += 1
+            return counter[time]
+        } else {
+            counter[time] = 0
+            return 0
+        }
+    }
 
 
     function createLogWindow(tag) {

@@ -1,6 +1,8 @@
  :root {
         --scroll-bar-color: #c5c5c5;
         --scroll-bar-bg-color: #383838;
+        --logWindowWidth:100%;
+        --logWindowHeight:100%;
     }
 ::-webkit-scrollbar-corner { background: rgba(0,0,0,0.5); }
 
@@ -49,12 +51,10 @@ html,body{
 }
 
 .logWindow{
-    height:50%;
-    width:33.3%;
-    max-height:50%;
-    max-width:33.3%;
-        /* width:1%;
-    height:1%; */
+    width: var(--logWindowWidth);
+    height: var(--logWindowHeight);
+    max-width: var(--logWindowWidth);
+    max-height: var(--logWindowHeight);
     border:1px solid #555;
     overflow-y:auto;
     position:relative;
