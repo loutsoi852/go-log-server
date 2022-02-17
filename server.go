@@ -16,8 +16,8 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-//go:embed assets/*
-var assets embed.FS
+//go:embed ui/*
+var ui embed.FS
 
 const logFileA string = "logA.log"
 const logFileB string = "logB.log"
@@ -41,31 +41,28 @@ var wsCons [10]wsConn
 func main() {
 	r := mux.NewRouter()
 
-	assetsFS := http.FileServer(http.FS(assets))
+	uiFS := http.FileServer(http.FS(ui))
 
-	http.Handle("/assets/", assetsFS)
+	http.Handle("/ui/", uiFS)
 	r.HandleFunc("/send", fileAppendHandler)
 	r.HandleFunc("/read/{lines}", fileReadHandler)
 	http.HandleFunc("/liveLogs", liveLogs)
-	http.Handle("/", r)
+	http.HandleFunc("/", redirect)
 
-	r.PathPrefix("/build").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "./build/index.html")
-	})
-
-	r.PathPrefix("/test").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "./test.html")
-	})
-
-	r.PathPrefix("/").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "./index.html")
-	})
+	// r.PathPrefix("/").HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	// 	http.ServeFile(w, r, "./index.html")
+	// })
 
 	fmt.Printf("Starting server at port 7777\n")
 	// if err := http.ListenAndServe("0.0.0.0:7777", nil); err != nil {
 	if err := http.ListenAndServe("127.0.0.1:7777", nil); err != nil {
 		log.Fatal(err)
 	}
+}
+
+func redirect(w http.ResponseWriter, r *http.Request) {
+	// fmt.Printf(r.Host+r.URL.Path+"ui/")
+    http.Redirect(w, r, "http://"+r.Host+r.URL.Path+"ui/", 302)
 }
 
 func closeConn(conn *websocket.Conn, index int) {

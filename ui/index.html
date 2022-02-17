@@ -1,0 +1,190 @@
+<html>
+<link href="jsonViewer.css" rel="stylesheet" type="text/css" />
+<link href="style.css" rel="stylesheet" type="text/css" />
+<script type="text/javascript" src="htmlNode.js"></script>
+<script type="text/javascript" src="jsonViewer.js"></script>
+<script>
+
+    const numLogsToRead = 10
+
+    function connect() {
+        var ws = new WebSocket("ws://" + window.location.hostname + ":7777/liveLogs");
+        ws.onopen = function () {
+            console.log('ws connected')
+        };
+
+        ws.onmessage = function (e) {
+            wsMessage(e)
+        };
+
+        ws.onclose = function (e) {
+            console.log('Socket is closed. Reconnect will be attempted in 1 second.', e.reason);
+            ws = null
+            setTimeout(function () {
+                connect();
+            }, 1000);
+        };
+
+        ws.onerror = function (err) {
+            console.error('Socket encountered error: ', err.message, 'Closing socket');
+            ws.close();
+        };
+    }
+
+    connect();
+
+
+    async function wsMessage(e) {
+        let json
+        if (typeof e.data.text !== "undefined") {
+            json = JSON.parse(await e.data.text())
+        } else {
+            json = JSON.parse(e.data)
+
+        }
+        const JsonData = JSON.parse(json.data)
+        console.log(json.time, JSON.parse(json.data))
+        // console.log(JsonData)
+
+        const ID = getIdentifier(JsonData)
+        let container
+        if (typeof JsonData.tag !== "undefined") {
+            if (typeof getElByClass("tag:" + ID) === 'undefined') {
+                container = createLogWindow(ID)
+                filter()
+            } else {
+                container = getElByClass("tag:" + ID)
+            }
+        } else {
+            container = getElByClass("tag:")
+        }
+        new JsonViewer({
+            container: container,
+            dateTime: getDateTime(json.time),
+            data: JsonData.args,
+            theme: 'dark',
+            expand: false
+        });
+        container.scrollTop = container.scrollHeight;
+    }
+
+    function getIdentifier(data) {
+        const keys = Object.keys(data)
+        const id = keys.filter(v => v !== "tag" && v !== "args").reduce((c, v, i, a) => {
+
+            const newC = c + data[v] + '|'
+            if (i === 0) return data['tag'] + '(' + newC
+            return (i === a.length - 1) ? newC.slice(0, -1) + ')' : newC
+        }, '')
+        return id
+    }
+
+    function setLogWindowWH(cols) {
+        const maxCols = 4
+        if (cols <= maxCols) {
+            document.documentElement.style.setProperty('--logWindowWidth', (100 / cols) + "%");
+        } else {
+            document.documentElement.style.setProperty('--logWindowWidth', "25%");
+            const rows = Math.ceil(cols / maxCols)
+            document.documentElement.style.setProperty('--logWindowHeight', (100 / rows) + "%");
+        }
+
+    }
+
+    function getDateTime(nanotime) {
+        var d = new Date(Math.round(nanotime / 1000000));
+        const counter = getCount(d.getHours() + '' + d.getMinutes())
+        return counter + "(" + d.getHours() + ':' + d.getMinutes() + ') ' + d.getSeconds() + ':' + d.getMilliseconds() + " | " + d.getDate() + '/' + (d.getMonth()) + '/' + d.getFullYear() + " | "
+    };
+
+    let counter = {}
+
+    function getCount(time) {
+        if (Object.keys(counter).includes(time)) {
+            counter[time] += 1
+            return counter[time]
+        } else {
+            counter[time] = 0
+            return 0
+        }
+    }
+
+
+    let logWindowIDs = []
+    function createLogWindow(tag) {
+        const tagName = new Node('div').addText(tag.split('(')[1].slice(0, -1))
+        const others = new Node('div').addText(tag.split('(')[0])
+        const maximize = new Node('div').addClass('maximize')
+        const tagRow = new Node('div').addClass("tagRow").append(tagName).append(others).append(maximize)
+        const logWindow = new Node('div').addClass('logWindow').addClass('tag:' + tag).append(tagRow)
+        maximize.el.addEventListener('click', e => logWindow.containsClass('maxed') ? logWindow.removeClass("maxed") : logWindow.addClass("maxed"))
+
+        const filterVal = document.getElementById('filter').value
+        if (filterVal.length > 0 && tag.indexOf(filterVal) === -1) {
+            logWindow.el.style.display = 'none'
+        }
+
+        getElByClass("logsContainer").appendChild(logWindow.el)
+        logWindowIDs.push(tag)
+        sortLogWindows()
+        return logWindow.el
+    }
+
+    function sortLogWindows() {
+        logWindowIDs.sort(function (a, b) {
+            var nameA = a.split('(')[1] + a.split('(')[0]
+            var nameB = b.split('(')[1] + b.split('(')[0]
+            if (nameA < nameB) {
+                return -1;
+            }
+            if (nameA > nameB) {
+                return 1;
+            }
+            return 0;
+        });
+        logWindowIDs.forEach((v, i) => getElByClass("tag:" + v).style.order = i)
+    }
+    function getElByClass(classname) {
+        return document.getElementsByClassName(classname)[0]
+    }
+
+    function clearLogs() {
+        getElByClass('logsContainer').innerHTML = ""
+    }
+    function clearFilter() {
+        document.getElementById('filter').value = ""
+        filter()
+    }
+    function filter() {
+        const val = document.getElementById('filter').value
+        let count = 0
+        logWindowIDs.forEach((v, i) => {
+            if (v.indexOf(val) > -1 || val.length === 0) {
+                getElByClass("tag:" + v).style.display = 'block'
+                count += 1
+            } else {
+                getElByClass("tag:" + v).style.display = 'none'
+            }
+        })
+        setLogWindowWH(count)
+    }
+
+
+</script>
+
+<body>
+    <main class="fullWH">
+        <div class="controlBar">
+            <button class="btn" onClick="clearLogs()">Clear Logs</button>
+            <button class="btn" onClick="clearFilter()">Clear Filter</button>
+            <input class="filter" id="filter" placeholder="filter tags" type="text" onInput="filter()" />
+        </div>
+        <div class="logsContainer"></div>
+    </main>
+    <!-- 
+    <script>
+        createLogWindow("")
+    </script> -->
+</body>
+
+</html>
